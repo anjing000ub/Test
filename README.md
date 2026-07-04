@@ -1,216 +1,96 @@
 # DupliGuard
 
-> Sistem deteksi dan manajemen duplikat file untuk Google Drive
+Sistem profesional untuk mendeteksi dan mengelola file duplikat di Google Drive.
 
-DupliGuard adalah sistem komprehensif untuk mendeteksi dan mengelola file duplikat di Google Drive. Terdiri dari dua komponen terintegrasi yang bekerja bersama untuk memberikan manajemen duplikat yang aman, efisien, dan reversibel.
+DupliGuard terdiri dari dua komponen Python terpisah yang bekerja bersama:
 
----
+- DGV (DupliGuard Vision) — scanner & reporter: mendeteksi duplikat gambar dan video menggunakan teknik hashing dan analisis visual.
+- DGE (DupliGuard Evictor) — executor: mengeksekusi rekomendasi laporan secara aman dengan cara non-destruktif (mengeluarkan file dari folder, bukan menghapus).
 
-## Ringkasan
+Ringkasan singkat
+------------------
+DGV melakukan deteksi melalui beberapa tingkatan: exact match (BLAKE3), perceptual hashing (pHash/dHash), analisis warna dan fitur lokal, serta SSIM sebagai keputusan akhir. Untuk video, DGV mensampling frame dan membandingkan frame-level hashes.
 
-### DGV (DupliGuard Vision)
-**Scanner & Pelapor** - Mendeteksi duplikat foto dan video di Google Drive menggunakan algoritma hashing lanjutan dan pencocokan perseptual.
+DGE membaca laporan yang dihasilkan oleh DGV dan mengeksekusi tindakan yang aman: mengeluarkan file dari folder target menggunakan Drive API (`files.update` dengan `removeParents`) tanpa memindahkan atau menghapus file dari Drive pemilik.
 
-### DGE (DupliGuard Evictor)
-**Eksekutor** - Mengeluarkan file duplikat dari folder secara aman berdasarkan laporan DGV tanpa menghapus file.
+Fitur utama
+-----------
+- Deteksi level byte (BLAKE3) untuk duplikat persis.
+- Perceptual hashing (pHash/dHash) untuk pra-filter visual.
+- Analisis multi-gate: aspect ratio, histogram warna, color-grid per-region, blur & edge detection, SSIM.
+- Sampling frame untuk deteksi duplikat video.
+- Laporan terstruktur (TXT + PDF) dengan thumbnail dan metadata.
+- Operasi idempoten dan checkpoint untuk resume aman.
+- Audit log dan rollback manual — semua tindakan tercatat.
+- Throttling adaptif & retry cerdas untuk aman terhadap rate-limit Drive API.
 
----
+Struktur repo & file utama
+--------------------------
+- DGV.py       — scanner & reporter (jalankan untuk membuat laporan)
+- DGEvictor.py — executor (jalankan untuk menerapkan laporan)
+- README.md    — (dokumen ini)
 
-## Fitur
+Quick start (Google Colab)
+--------------------------
+1. Buka https://colab.research.google.com/ dan buat notebook baru.
+2. Upload `DGV.py` atau `DGEvictor.py` ke workspace Colab (drag & drop) atau mount repo/GDrive.
+3. Jalankan scanning:
 
-### DGV (DupliGuard Vision)
-
-**Kemampuan Deteksi:**
-- **Exact Match**: Hashing BLAKE3 untuk deteksi duplikat level byte
-- **Visual Match**: Perceptual hashing (pHash, dHash H/V) dengan analisis color grid, histogram, aspect ratio, blur detection, edge detection, blockiness JPEG, dan SSIM
-- **Video Match**: Sampling frame dengan durasi gating untuk duplikat video
-
-**Fitur Keandalan:**
-- Pemulihan otomatis setelah crash dengan journal LMDB
-- Rate limiting adaptif dengan circuit breaker untuk Drive API
-- Verifikasi integritas unduhan (BLAKE3/MD5/SHA-256/size)
-- Laporan TXT dan PDF komprehensif dengan thumbnail
-
-### DGE (DupliGuard Evictor)
-
-**Fitur Keamanan:**
-- Penghapusan non-destruktif (file dikeluarkan dari folder, bukan dihapus)
-- Operasi reversibel - file tetap ada di My Drive pemilik
-- Mode interaktif untuk batch kecil, mode batch untuk jutaan file
-- Token-bucket throttling proaktif untuk mencegah rate limit
-- Retry cerdas dengan backoff dan klasifikasi error
-- Log audit persisten dan reversibel untuk rollback manual
-- Sistem checkpoint untuk resume aman setelah interrupt
-- Operasi idempoten - aman dijalankan ulang
-
-**Prinsip Utama:**
-1. Hanya mengeluarkan file dari folder menggunakan `files.update + removeParents`
-2. Tidak pernah menghapus file atau memindah ke trash
-3. Semua tindakan reversibel - tidak ada kehilangan data
-
----
-
-## Cara Penggunaan
-
-1. **Buka Google Colab**
-   - Kunjungi: https://colab.research.google.com/
-   - Klik "New Notebook" untuk membuat notebook baru
-
-2. **Upload File**
-   - Upload `DGV.py` atau `DGEvictor.py` ke Colab (drag & drop ke panel file di sebelah kiri)
-   - Atau gunakan menu: `File` → `Upload notebook`
-
-3. **Jalankan Script**
-   - Buat cell baru di notebook
-   - Jalankan dengan perintah:
-     ```python
-     !python DGV.py
-     ```
-     atau
-     ```python
-     %run DGEvictor.py
-     ```
-   - Klik tombol "Play" (▶) atau tekan `Shift + Enter`
-
-4. **Autentikasi**
-   - Saat diminta, klik link autentikasi Google
-   - Copy verification code dan paste ke kolom yang tersedia
-   - Tunggu proses mounting Google Drive selesai
-
-5. **Scan dengan DGV**
-   - Jalankan `DGV.py` di Google Colab
-   - Pilih folder Drive yang ingin di-scan (untuk folder yang dibagikan orang lain, buat pintasan di My Drive agar bisa di-scan)
-   - Tunggu proses scanning selesai
-   - Jika duplikat ditemukan, akan muncul opsi "Simpan laporan? (y/n)"
-   - Pilih 'y' untuk membuat laporan (TXT + PDF) di folder `DupliGuard Vision/<Nama Folder> (ID Folder)/2_laporan/`
-   - Pilih 'n' untuk tidak membuat laporan
-
-6. **Eksekusi dengan DGE**
-   - Jalankan `DGEvictor.py` di Google Colab
-   - Masukkan atau salin nama file laporan TXT (contoh: `dgv_report_Photos (1ABC2DEF3GHI).txt`)
-   - Review informasi laporan (folder, jumlah duplikat, ukuran)
-   - Pilih mode eksekusi:
-     - **[1]** Terapkan rekomendasi laporan (keluarkan semua duplikat sesuai laporan)
-     - **[2]** Kecualikan file pilihan (masukkan ID duplikat yang ingin DIPERTAHANKAN - hanya ID duplikat yang diterima, file asli otomatis dilindungi)
-     - **[3]** Pengeluaran manual by ID (masukkan ID file yang ingin DIKELUARKAN, bisa asli atau duplikat)
-   - Konfirmasi dua kali sebelum eksekusi
-
----
-
-## Alur Kerja Deteksi Duplikat
-
-### Proses Analisis DGV
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      FILE DRIVE                              │
-└──────────────────────────┬───────────────────────────────────┘
-                           ↓
-┌──────────────────────────────────────────────────────────────┐
-│             [1] EXACT MATCH (BLAKE3)                         │
-│             Cek identik byte per byte                        │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-        ┌──────────────────┴──────────────┐
-        ↓                                 ↓
-    Identik?                         Tidak Identik
-        ↓                                 ↓
-┌───────────────┐          ┌──────────────────────────────────┐
-│ DUPLIKAT      │          │ [2] VISUAL MATCH - FOTO          │
-│ EXACT         │          └──────────────┬───────────────────┘
-└───────────────┘                         ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.1 pHash/dHash H/V (pra-filter) │
-                           └──────────────┬───────────────────┘
-                                          ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.2 Aspect Ratio Gate            │
-                           └──────────────┬───────────────────┘
-                                          ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.3 Histogram Warna Global       │
-                           └──────────────┬───────────────────┘
-                                          ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.4 Color Grid (per-region)      │
-                           └──────────────┬───────────────────┘
-                                          ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.5 Blur Detection (per-region)  │
-                           └──────────────┬───────────────────┘
-                                          ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.6 Edge Detection (per-region)  │
-                           └──────────────┬───────────────────┘
-                                          ↓
-                           ┌──────────────────────────────────┐
-                           │ 2.7 SSIM (final decision)        │
-                           └──────────────┬───────────────────┘
-                                          │
-                              ┌───────────┴───────────┐
-                              ↓                       ↓
-                          SSIM > 0.94             SSIM ≤ 0.94
-                              ↓                       ↓
-                      ┌──────────────┐        ┌──────────────┐
-                      │ DUPLIKAT     │        │ BUKAN        │
-                      │ VISUAL       │        │ DUPLIKAT     │
-                      └──────────────┘        └──────────────┘
-
-┌──────────────────────────────────────────────────────────────┐
-│             [3] VISUAL MATCH - VIDEO                         │
-└──────────────────────────┬───────────────────────────────────┘
-                           ↓
-┌──────────────────────────────────────────────────────────────┐
-│ 3.1 Sampling Frame Grid                                      │
-└──────────────────────────┬───────────────────────────────────┘
-                           ↓
-┌──────────────────────────────────────────────────────────────┐
-│ 3.2 Durasi Gate (toleransi 3%)                               │
-└──────────────────────────┬───────────────────────────────────┘
-                           ↓
-┌──────────────────────────────────────────────────────────────┐
-│ 3.3 pHash/dHash per Frame                                    │
-└──────────────────────────┬───────────────────────────────────┘
-                           ↓
-┌──────────────────────────────────────────────────────────────┐
-│ 3.4 Frame Match Ratio > 97%                                  │
-└──────────────────────────┬───────────────────────────────────┘
-                           ↓
-                    ┌──────────────┐
-                    │ DUPLIKAT     │
-                    │ VIDEO        │
-                    └──────────────┘
+```python
+!python DGV.py --folder "My Drive/Photos" --outdir "DupliGuard Vision/My Drive/Photos (ID)/2_laporan/"
 ```
 
-**Penjelasan Gerbang:**
-- **Exact Match**: Hashing BLAKE3 untuk deteksi duplikat level byte (file identik persis)
-- **pHash/dHash H/V**: Perceptual hashing untuk pra-filter cepat kandidat visual
-- **Aspect Ratio**: Filter awal untuk menolak crop/rotasi
-- **Histogram**: Korelasi warna global untuk menolak filter warna/B&W/sepia
-- **Color Grid**: Analisis warna per-blok untuk mendeteksi perubahan lokal
-- **Blur Detection**: Mendeteksi blur editan/sensor (wajah, plat nomor)
-- **Edge Detection**: Mendeteksi stiker/teks/watermark kecil
-- **SSIM**: Pemutus akhir untuk memastikan kesamaan struktural
+4. Ikuti instruksi autentikasi Google saat diminta.
+5. Saat scan selesai, jika memilih menyimpan laporan akan dibuat file TXT (layak dibaca mesin) dan PDF (ringkasan + thumbnails).
 
----
+Menerapkan laporan dengan DGE
+----------------------------
+1. Upload `DGEvictor.py` dan laporan TXT hasil DGV.
+2. Jalankan:
 
-## Struktur Penyimpanan
-
+```python
+!python DGEvictor.py --report "dgv_report_NamaFolder (ID).txt" --mode 1
 ```
+
+Mode yang tersedia:
+- 1 — Terapkan rekomendasi laporan (keluarkan semua duplikat sesuai rekomendasi).
+- 2 — Kecualikan file tertentu (berikan ID duplikat yang ingin dipertahankan).
+- 3 — Eksekusi manual by ID (masukkan ID file yang ingin dikeluarkan).
+
+DGE selalu meminta konfirmasi ganda sebelum menulis perubahan ke Drive.
+
+Format laporan
+--------------
+Laporan TXT berisi entri per-file dengan format terstruktur: Original/Caller, Candidate ID, hash (BLAKE3), pHash/dHash, SSIM (jika tersedia), ukuran, path folder, dan rekomendasi (keep/evict). Nama laporan mengikuti pola: `dgv_report_<NamaFolder> (<IDFolder>).txt`.
+
+Arsitektur penyimpanan hasil scan
+---------------------------------
 DupliGuard Vision/
 └── <Nama Folder> (<id>)/
-    ├── 1_database/     # hash_<id>.mdb + manifest_<id>.mdb (permanen)
-    ├── 2_laporan/      # TXT + PDF (output scan)
-    └── 3_cache/        # journal_<id>.mdb (bisa dibuat ulang)
-```
+    ├── 1_database/     # database hash dan manifest (persisten)
+    ├── 2_laporan/      # TXT + PDF output
+    └── 3_cache/        # cache / journal (dapat dibangun ulang)
 
----
+Keamanan & kebijakan data
+-------------------------
+- Tidak ada penghapusan permanen: semua tindakan DGE bersifat non-destruktif (mengeluarkan dari parent folder saja).
+- Operasi idempoten: menjalankan ulang alat tidak menyebabkan kehilangan data.
+- Audit trail lengkap: setiap perubahan dicatat untuk memungkinkan rollback manual.
+- Proteksi TOCTOU: DGE memverifikasi parent dan metadata (size/MD5/BLAKE3 opsional) sebelum eksekusi.
 
-## Keamanan
+Panduan kontribusi
+------------------
+1. Fork repo dan buat branch fitur: `git checkout -b feat/your-feature`.
+2. Tambahkan test dan dokumentasi singkat.
+3. Buat PR dengan deskripsi perubahan dan contoh penggunaan.
 
-- **Tidak ada penghapusan permanen** - file hanya dikeluarkan dari folder
-- **Operasi idempoten** - aman dijalankan ulang
-- **Audit trail** - semua tindakan tercatat untuk review
-- **Sistem checkpoint** - resume aman setelah interrupt
-- **Proteksi TOCTOU** - verifikasi parent sebelum eksekusi
-- **Verifikasi anti-stale** - cek size + MD5 (opsional BLAKE3)
+Lisensi
+-------
+Lisensi tidak ditentukan dalam repo. Jika Anda ingin menambahkan lisensi, tambahkan file `LICENSE` (mis. MIT atau Apache-2.0).
+
+Catatan terakhir
+---------------
+README ini dirancang agar ringkas, rapi, dan mudah diikuti oleh pengguna yang menjalankan DGV/DGE di Google Colab atau lingkungan lokal Python. Jika mau, saya bisa:
+- Menambahkan contoh output laporan (potongan TXT/PDF),
+- Menyertakan badge CI atau status, atau
+- Menambahkan instruksi instalasi dependency (requirements.txt) yang sesuai kode DGV/DGE di repo.
