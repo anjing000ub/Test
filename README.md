@@ -26,11 +26,11 @@ Folder Google Drive
         │   └── SSIM 
         │   ◄────┘                
         │
-        └── Video
-            ├── Duration Gate
-            ├── Frame Sampling
-            ├── dHash/pHash per Frame
-            └── Frame Match Ratio
+        ├── Video
+        │    ├── Duration Gate
+        │    ├── Frame Sampling
+        │    ├── dHash/pHash per Frame
+        │    └── Frame Match Ratio
         │  
         ├─── ► ✓ Duplikat Visual
         │
