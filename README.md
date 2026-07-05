@@ -31,6 +31,7 @@ Folder Google Drive
         │    ├── Frame Sampling
         │    ├── dHash/pHash per Frame
         │    └── Frame Match Ratio
+        │   ◄─────────┘
         │  
         ├─── ► ✓ Duplikat Visual
         │
