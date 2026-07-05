@@ -24,7 +24,7 @@ Folder Google Drive
         │   ◄──────────────┘
         │   ├── Edge
         │   └── SSIM 
-        │◄───────┘                
+        │   ◄────┘                
         │
         └── Video
             ├── Duration Gate
@@ -34,5 +34,5 @@ Folder Google Drive
         │  
         ├─── ► ✓ Duplikat Visual
         │
-        └────►  Laporan TXT + PDF
+        └─── ►  Laporan TXT + PDF
 ```
