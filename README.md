@@ -23,18 +23,16 @@ Folder Google Drive
         │   └────► JPEG Blockiness Rescue
         │   ◄──────────────┘
         │   ├── Edge
-        │   └── SSIM
-        ◄────────┘
+        │   └── SSIM 
+        │◄───────┘                
         │
-        ├── Video
-        │   ├── Duration Gate
-        │   ├── Frame Sampling
-        │   ├── dHash/pHash per Frame
-        │   └── Frame Match Ratio
-        │             │
-        │             ▼
-        └── ✓ Duplikat Visual / File Unik
-                    │
-                    ▼
-             Laporan TXT + PDF
+        └── Video
+            ├── Duration Gate
+            ├── Frame Sampling
+            ├── dHash/pHash per Frame
+            └── Frame Match Ratio
+        │  
+        ├─── ► ✓ Duplikat Visual
+        │
+        └────►  Laporan TXT + PDF
 ```
