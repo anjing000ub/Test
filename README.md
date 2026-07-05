@@ -24,15 +24,16 @@ Folder Google Drive
         │   ◄──────────────┘
         │   ├── Edge
         │   └── SSIM
+        ◄────────┘
         │
-        └── Video
-            ├── Duration Gate
-            ├── Frame Sampling
-            ├── dHash/pHash per Frame
-            └── Frame Match Ratio
-                    │
-                    ▼
-          ✓ Duplikat Visual / File Unik
+        ├── Video
+        │   ├── Duration Gate
+        │   ├── Frame Sampling
+        │   ├── dHash/pHash per Frame
+        │   └── Frame Match Ratio
+        │             │
+        │             ▼
+        └── ✓ Duplikat Visual / File Unik
                     │
                     ▼
              Laporan TXT + PDF
