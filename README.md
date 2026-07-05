@@ -14,9 +14,9 @@ Folder Google Drive
     └── Analisis Visual
         │
         ├── Foto
-        │   ├── Aspect Ratio
         │   ├── pHash
         │   ├── dHash H/V
+        │   ├── Aspect Ratio
         │   ├── Histogram
         │   ├── Color Grid
         │   ├── Blur
