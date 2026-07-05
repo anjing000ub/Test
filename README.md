@@ -21,7 +21,7 @@ Folder Google Drive
         │   ├── Color Grid
         │   ├── Blur
         │   └────► JPEG Blockiness Rescue
-        │   ◄ ──────────────┘
+        │   ◄──────────────┘
         │   ├── Edge
         │   └── SSIM
         │
